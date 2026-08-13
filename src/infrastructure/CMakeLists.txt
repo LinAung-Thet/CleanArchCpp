@@ -1,14 +1,11 @@
 add_library(infrastructure STATIC
-    persistence/InMemoryUserRepository.cpp
+    # persistence/InMemoryUserRepository.cpp
+    persistence/sqlserver/SqlServerUserRepository.cpp
     logging/ConsoleLogger.cpp
 )
 
-target_include_directories(infrastructure
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-)
+# Link ODBC
+find_package(ODBC REQUIRED)
 
-target_link_libraries(infrastructure
-    PUBLIC
-        domain
-)
+target_link_libraries(infrastructure PUBLIC domain ODBC::ODBC)
+target_include_directories(infrastructure PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
