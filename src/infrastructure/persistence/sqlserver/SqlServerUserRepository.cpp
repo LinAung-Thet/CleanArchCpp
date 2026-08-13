@@ -34,6 +34,17 @@ void SqlServerUserRepository::connect(const std::string& connectionString) {
     );
 
     if (!SQL_SUCCEEDED(ret)) {
+        SQLCHAR sqlState[6], message[1024];
+        SQLINTEGER nativeError;
+        SQLSMALLINT messageLen;
+
+        SQLGetDiagRec(SQL_HANDLE_DBC, hDbc_, 1, sqlState, &nativeError,
+                    message, sizeof(message), &messageLen);
+
+        std::cout << "State: " << sqlState << "\n"
+                << "Native: " << nativeError << "\n"
+                << "Message: " << message << "\n";
+
         throw std::runtime_error("Failed to connect to SQL Server");
     }
 }

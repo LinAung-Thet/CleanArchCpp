@@ -1,4 +1,4 @@
-// #include "../infrastructure/persistence/InMemoryUserRepository.h"   
+#include "../infrastructure/persistence/InMemoryUserRepository.h"   
 #include "../infrastructure/logging/ConsoleLogger.h"
 #include "../application/use_cases/RegisterUser.h"
 #include "../interface_adapters/presenters/ConsoleUserPresenter.h"
@@ -7,12 +7,13 @@
 
 int main() {
     std::string connStr =
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        "SERVER=(local)\\SQLEXPRESS;"
-        "DATABASE=Conveyors;"
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=localhost,64420;"
+        "DATABASE=Conveyor;"
         "UID=sa;"
         "PWD=lat123456;"
-        "Encrypt=yes;TrustServerCertificate=no;";
+        "Encrypt=no;";
+        // "Encrypt=yes;TrustServerCertificate=yes;";
 
     infrastructure::persistence::sqlserver::SqlServerUserRepository userRepo(connStr);
     // infrastructure::persistence::InMemoryUserRepository userRepo;
