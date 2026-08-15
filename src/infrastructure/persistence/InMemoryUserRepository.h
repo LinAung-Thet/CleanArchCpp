@@ -12,7 +12,7 @@ public:
     void add(const domain::entities::User& user) override;
 
     std::optional<domain::entities::User>
-    findByEmail(const std::string& email) const override;
+    findByEmail(const std::string& email) override;
 
 private:
     std::vector<domain::entities::User> users_;

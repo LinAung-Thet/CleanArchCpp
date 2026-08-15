@@ -1,67 +1,25 @@
-#include "SqlServerUserRepository.h"
+#include "InDbUserRepository.h"
+#include <windows.h>
+#include <sql.h>
+#include <sqlext.h>
 #include <iostream>
 
-namespace infrastructure::persistence::sqlserver {
+namespace infrastructure::persistence {
 
-SqlServerUserRepository::SqlServerUserRepository(const std::string& connectionString)
-    : hEnv_(nullptr), hDbc_(nullptr)
+InDbUserRepository::InDbUserRepository(const std::string& connectionString)
+    : connectionString_(connectionString), sqlServerRepo_(connectionString)
 {
-    connect(connectionString);
 }
 
-SqlServerUserRepository::~SqlServerUserRepository() {
-    disconnect();
+InDbUserRepository::~InDbUserRepository() {
+    sqlServerRepo_.disconnect();
 }
 
-void SqlServerUserRepository::connect(const std::string& connectionString) {
-    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &hEnv_);
-    SQLSetEnvAttr(hEnv_, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+void InDbUserRepository::add(const domain::entities::User& user) {
+    SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
 
-    SQLAllocHandle(SQL_HANDLE_DBC, hEnv_, &hDbc_);
-
-    SQLCHAR outConnStr[1024];
-    SQLSMALLINT outConnStrLen;
-
-    auto ret = SQLDriverConnect(
-        hDbc_,
-        nullptr,
-        (SQLCHAR*)connectionString.c_str(),
-        SQL_NTS,
-        outConnStr,
-        sizeof(outConnStr),
-        &outConnStrLen,
-        SQL_DRIVER_NOPROMPT
-    );
-
-    if (!SQL_SUCCEEDED(ret)) {
-        SQLCHAR sqlState[6], message[1024];
-        SQLINTEGER nativeError;
-        SQLSMALLINT messageLen;
-
-        SQLGetDiagRec(SQL_HANDLE_DBC, hDbc_, 1, sqlState, &nativeError,
-                    message, sizeof(message), &messageLen);
-
-        std::cout << "State: " << sqlState << "\n"
-                << "Native: " << nativeError << "\n"
-                << "Message: " << message << "\n";
-
-        throw std::runtime_error("Failed to connect to SQL Server");
-    }
-}
-
-void SqlServerUserRepository::disconnect() {
-    if (hDbc_) {
-        SQLDisconnect(hDbc_);
-        SQLFreeHandle(SQL_HANDLE_DBC, hDbc_);
-    }
-    if (hEnv_) {
-        SQLFreeHandle(SQL_HANDLE_ENV, hEnv_);
-    }
-}
-
-void SqlServerUserRepository::add(const domain::entities::User& user) {
     SQLHSTMT stmt;
-    SQLAllocHandle(SQL_HANDLE_STMT, hDbc_, &stmt);
+    SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &stmt);
 
     const char* sql =
         "INSERT INTO Users (Id, Name, Email) VALUES (?, ?, ?)";
@@ -83,12 +41,15 @@ void SqlServerUserRepository::add(const domain::entities::User& user) {
     if (!SQL_SUCCEEDED(ret)) {
         throw std::runtime_error("Failed to insert user");
     }
+    sqlServerRepo_.disconnect();
 }
 
 std::optional<domain::entities::User>
-SqlServerUserRepository::findByEmail(const std::string& email) const {
+InDbUserRepository::findByEmail(const std::string& email) {
+    SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
+
     SQLHSTMT stmt;
-    SQLAllocHandle(SQL_HANDLE_STMT, hDbc_, &stmt);
+    SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &stmt);
 
     const char* sql =
         "SELECT Id, Name, Email FROM Users WHERE Email = ?";

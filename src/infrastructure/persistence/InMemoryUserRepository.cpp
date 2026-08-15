@@ -7,7 +7,7 @@ void InMemoryUserRepository::add(const domain::entities::User& user) {
 }
 
 std::optional<domain::entities::User>
-InMemoryUserRepository::findByEmail(const std::string& email) const {
+InMemoryUserRepository::findByEmail(const std::string& email) {
     for (const auto& u : users_) {
         if (u.email().value() == email) {
             return u;

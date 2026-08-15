@@ -1,6 +1,7 @@
 add_library(infrastructure STATIC
     persistence/InMemoryUserRepository.cpp
-    persistence/sqlserver/SqlServerUserRepository.cpp
+    persistence/InDbUserRepository.cpp
+    persistence/sqlserver/SqlServerRepository.cpp
     logging/ConsoleLogger.cpp
 )
 
