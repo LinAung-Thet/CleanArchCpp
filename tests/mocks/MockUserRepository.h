@@ -10,7 +10,7 @@ public:
     }
 
     std::optional<domain::entities::User>
-    findByEmail(const std::string& email) const override {
+    findByEmail(const std::string& email) override {
         if (storedUser && storedUser->email().value() == email)
             return storedUser;
         return std::nullopt;
