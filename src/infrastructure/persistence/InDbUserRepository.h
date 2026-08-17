@@ -4,9 +4,7 @@
 #include <optional>
 #include <string>
 #include "../../domain/repositories/IUserRepository.h"
-#include "DbRepository.h"
-// #include "sqlserver/SqlServerHelper.h"
-// #include "sqlserver/SqlServerRepository.h"
+#include "DbAdapter.h"
 
 namespace infrastructure::persistence {
 
@@ -22,7 +20,7 @@ public:
 private:
     const std::string& connectionString_;
     sqlserver::SqlServerRepository sqlServerRepo_;   // VALUE
-    DbRepository<domain::entities::User> dbRepo_;   // REFERENCE inside DbRepository
+    DbAdapter<domain::entities::User> dbRepo_;   // REFERENCE inside DbAdapter
 
 };
 

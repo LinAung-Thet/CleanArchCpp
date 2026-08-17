@@ -12,9 +12,9 @@
 namespace infrastructure::persistence {
 
 template <typename T>
-class DbRepository {
+class DbAdapter {
 public:
-    explicit DbRepository(sqlserver::SqlServerRepository& repo, std::string connectionString)
+    explicit DbAdapter(sqlserver::SqlServerRepository& repo, std::string connectionString)
         : connectionString_(std::move(connectionString)), sqlServerRepo_(repo) {}
 
     void add(const T& entity) {
@@ -147,7 +147,6 @@ public:
 private:
     std::string connectionString_;
     sqlserver::SqlServerRepository& sqlServerRepo_;
-
 };
 
 } // namespace infrastructure::persistence
