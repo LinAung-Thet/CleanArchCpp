@@ -64,11 +64,6 @@ void SqlServerRepository::disconnect() {
     }
 }
 
-template <typename T> std::string SqlServerRepository::buildInsertSql() {
-    // Implementation for building insert SQL
-    return "";
-}
 
-template <typename T> void SqlServerRepository::bindParameters(SQLHSTMT stmt, const T& entity) {}
 
 } // namespace infrastructure::persistence::sqlserver

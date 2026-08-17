@@ -22,8 +22,8 @@ int main() {
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
-    controller.registerUser("Lin", "lin@example.com");
-    controller.registerUser("Lin", "lin@example.com"); // duplicate to show behavior
+    controller.registerUser("Linb", "linb@example.com");
+    controller.registerUser("Linb", "linb@example.com"); // duplicate to show behavior
 
     return 0;
 }
