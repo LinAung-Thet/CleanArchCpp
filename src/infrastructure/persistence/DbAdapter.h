@@ -6,19 +6,21 @@
 #include <sql.h>
 #include <sqlext.h>
 
+#include "IDatabaseConnection.h"
 #include "sqlserver/SqlServerHelper.h"
-#include "sqlserver/SqlServerRepository.h"
+#include "sqlserver/SqlServerAdapter.h"
 
 namespace infrastructure::persistence {
 
 template <typename T>
 class DbAdapter {
 public:
-    explicit DbAdapter(sqlserver::SqlServerRepository& repo, std::string connectionString)
-        : connectionString_(std::move(connectionString)), sqlServerRepo_(repo) {}
+    explicit DbAdapter(std::string connectionString, IDatabaseConnection& db)
+        : connectionString_(std::move(connectionString)), db_(db) {}
 
     void add(const T& entity) {
-        SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
+        // SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
+        SQLHDBC hDbc = db_.connect(connectionString_);
 
         SQLHSTMT stmt = nullptr;
 
@@ -32,9 +34,8 @@ public:
             throw std::runtime_error("Failed to allocate statement");
         }
 
-        std::string sql =
-            infrastructure::persistence::sqlserver::
-            SqlServerHelper::buildInsertSql<T>();
+        auto adapter = infrastructure::persistence::sqlserver::SqlServerAdapter<T>{};
+        std::string sql = adapter.buildInsert(entity);
 
         ret = SQLPrepare(
             stmt,
@@ -85,16 +86,16 @@ public:
             std::cout << "Message: " << message << '\n';
         }
         if (!SQL_SUCCEEDED(ret)) {
-            sqlServerRepo_.disconnect();
+            db_.disconnect();
             throw std::runtime_error("Failed to insert entity");
         }
 
         SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        sqlServerRepo_.disconnect();
+        db_.disconnect();
     }
 
     template <typename T> std::optional<T> findByColumn( const std::string& column, const std::string& value ) const {
-        SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
+        SQLHDBC hDbc = db_.connect(connectionString_);
 
         SQLHSTMT stmt;
         SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &stmt);
@@ -134,7 +135,7 @@ public:
 
         SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 
-        sqlServerRepo_.disconnect();
+        db_.disconnect();
 
         // Construct entity using SqlTraits<T>
         return infrastructure::persistence::sqlserver::SqlTraits<T>::fromRow(
@@ -146,7 +147,7 @@ public:
 
 private:
     std::string connectionString_;
-    sqlserver::SqlServerRepository& sqlServerRepo_;
+    IDatabaseConnection& db_;
 };
 
 } // namespace infrastructure::persistence

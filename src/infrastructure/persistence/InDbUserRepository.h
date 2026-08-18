@@ -20,7 +20,6 @@ public:
 
 private:
     const std::string& connectionString_;
-    sqlserver::SqlServerRepository sqlServerRepo_;  // VALUE
     IDatabaseConnection& db_;
     DbAdapter<domain::entities::User> dbRepo_;   // REFERENCE inside DbAdapter
 

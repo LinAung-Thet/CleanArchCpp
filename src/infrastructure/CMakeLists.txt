@@ -4,7 +4,6 @@ add_library(infrastructure STATIC
     persistence/DbAdapter.h
     persistence/IDatabaseConnection.h
     persistence/IServerHelper.h
-    persistence/sqlserver/SqlServerRepository.cpp
     persistence/sqlserver/SqlServerHelper.h
     persistence/sqlserver/SqlServerAdapter.h
     persistence/sqlserver/SqlServerConnection.h

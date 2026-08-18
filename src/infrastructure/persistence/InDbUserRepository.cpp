@@ -12,8 +12,8 @@ namespace infrastructure::persistence {
 InDbUserRepository::InDbUserRepository(IDatabaseConnection& db, const std::string& connectionString)
     : connectionString_(connectionString),
       db_(db),
-      sqlServerRepo_(connectionString_),            // construct the real object
-      dbRepo_(sqlServerRepo_, connectionString_)    // pass it BY REFERENCE
+    //   sqlServerRepo_(connectionString_),            // construct the real object
+      dbRepo_(connectionString_, db_)    // pass it BY REFERENCE
 {}
 
 InDbUserRepository::~InDbUserRepository() {}

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../IServerHelper.h"
 #include "SqlServerHelper.h"
 
