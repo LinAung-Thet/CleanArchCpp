@@ -4,6 +4,7 @@
 #include "../interface_adapters/presenters/ConsoleUserPresenter.h"
 #include "../interface_adapters/controllers/UserController.h"
 #include "../infrastructure/persistence/InDbUserRepository.h"
+#include "../infrastructure/persistence/sqlserver/SqlServerConnection.h"
 
 int main() {
     std::string connStr =
@@ -15,7 +16,8 @@ int main() {
         "Encrypt=no;";
         // "Encrypt=yes;TrustServerCertificate=yes;";
 
-    infrastructure::persistence::InDbUserRepository userRepo(connStr);
+    infrastructure::persistence::sqlserver::SqlServerConnection dbConnection(connStr);
+    infrastructure::persistence::InDbUserRepository userRepo(dbConnection, connStr);
     infrastructure::logging::ConsoleLogger logger;
 
     application::use_cases::RegisterUser registerUserUseCase(userRepo);
