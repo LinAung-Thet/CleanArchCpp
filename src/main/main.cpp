@@ -4,7 +4,9 @@
 #include "../interface_adapters/presenters/ConsoleUserPresenter.h"
 #include "../interface_adapters/controllers/UserController.h"
 #include "../infrastructure/persistence/InDbUserRepository.h"
+#include "../infrastructure/persistence/DbAdapter.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerConnection.h"
+#include "../infrastructure/persistence/sqlserver/SqlServerHelper.h"
 
 int main() {
     std::string connStr =
@@ -16,16 +18,21 @@ int main() {
         "Encrypt=no;";
         // "Encrypt=yes;TrustServerCertificate=yes;";
 
+    using User = domain::entities::User;
     infrastructure::persistence::sqlserver::SqlServerConnection dbConnection(connStr);
-    infrastructure::persistence::InDbUserRepository userRepo(dbConnection, connStr);
+    SqlServerHelper sqlServerHelper;
+
+    sqlServerHelper.registerType<User>();
+    infrastructure::persistence::DbAdapter<User> userAdapter(connStr, dbConnection, sqlServerHelper);
+    infrastructure::persistence::InDbUserRepository userRepo(connStr, dbConnection, sqlServerHelper, userAdapter);
     infrastructure::logging::ConsoleLogger logger;
 
     application::use_cases::RegisterUser registerUserUseCase(userRepo);
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
-    controller.registerUser("Linb", "linb@example.com");
-    controller.registerUser("Linb", "linb@example.com"); // duplicate to show behavior
+    controller.registerUser("Ling", "ling@example.com");
+    controller.registerUser("Ling", "ling@example.com"); // duplicate to show behavior
 
     return 0;
 }
