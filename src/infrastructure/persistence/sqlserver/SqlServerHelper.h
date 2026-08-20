@@ -1,122 +1,301 @@
 #pragma once
 
-#include <array>
+#include "../IServerHelper.h"
+#include "../SqlTraits.h"
+
+#include <sstream>
+#include <stdexcept>
 #include <string>
-#include <Windows.h>
-#include <sqltypes.h>
+#include <string_view>
 #include <vector>
-#include "../../../domain/entities/User.h"
-#include "SqlTraits.h"
 
-namespace infrastructure::persistence::sqlserver {
-
-class SqlServerHelper {
+class SqlServerHelper final
+    : public IServerHelper
+{
 public:
-    template <typename T> static std::string buildInsertSql() {
-        const auto& cols = SqlTraits<T>::columns;
 
-        std::string sql = "INSERT INTO ";
-        sql += SqlTraits<T>::table;
-        sql += " (";
+    // ========================================================
+    // Register any entity
+    // ========================================================
 
-        for (size_t i = 0; i < cols.size(); ++i) {
-            sql += cols[i];
-            if (i + 1 < cols.size()) sql += ", ";
-        }
+    template<typename T>
+    void registerType()
+    {
+        registry_[typeid(T).hash_code()] =
+        {
+            // INSERT
+            [](const void* object)
+            {
+                const T& entity =
+                    *static_cast<const T*>(object);
 
-        sql += ") VALUES (";
+                return buildInsertSqlImpl<T>(entity);
+            },
 
-        for (size_t i = 0; i < cols.size(); ++i) {
-            sql += "?";
-            if (i + 1 < cols.size()) sql += ", ";
-        }
+            // BIND PARAMETERS
+            [](SQLHSTMT stmt,
+               const void* object,
+               std::vector<std::string>& buffers,
+               std::vector<SQLLEN>& lengths)
+            {
+                const T& entity =
+                    *static_cast<const T*>(object);
 
-        sql += ")";
-        return sql;
+                bindParametersImpl<T>(
+                    stmt,
+                    entity,
+                    buffers,
+                    lengths);
+            },
+
+            // SELECT
+            [](const std::string& column)
+            {
+                return buildSelectSqlImpl<T>(column);
+            },
+
+            // OUTPUT
+            [](SQLHSTMT stmt,
+               std::vector<std::vector<char>>& buffers)
+            {
+                bindOutputColumnsImpl<T>(
+                    stmt,
+                    buffers);
+            },
+
+            // COLUMN COUNT
+            []()
+            {
+                return infrastructure::persistence::
+                    SqlTraits<T>::columnCount();
+            }
+        };
     }
 
-    template <typename T> static void bindParameters(SQLHSTMT stmt, const T& entity,
-        std::vector<std::string>& buffers, std::vector<SQLLEN>& lengths) {
-        const auto& sizes = SqlTraits<T>::columnSizes;
+protected:
 
-        buffers.clear();
-        lengths.clear();
+    // ========================================================
+    // Column count
+    // ========================================================
 
-        buffers.reserve(sizes.size());
-        lengths.reserve(sizes.size());
+    std::size_t columnCountImpl(
+        const std::type_info& type) const override
+    {
+        return columnCountFromRegistry(type);
+    }
 
-        for (size_t i = 0; i < sizes.size(); ++i) {
-            buffers.push_back(SqlTraits<T>::getField(entity, i));
-            lengths.push_back(
-                static_cast<SQLLEN>(buffers[i].size())
-            );
+private:
 
-            auto ret = SQLBindParameter(
-                stmt,
-                static_cast<SQLUSMALLINT>(i + 1),
-                SQL_PARAM_INPUT,
-                SQL_C_CHAR,
-                SQL_VARCHAR,
-                static_cast<SQLULEN>(sizes[i]),
-                0,
-                const_cast<char*>(buffers[i].c_str()),
-                static_cast<SQLLEN>(buffers[i].size()),   // buffer length
-                &lengths[i]                                 // length pointer
-            );
+    // ========================================================
+    // SELECT
+    // ========================================================
 
-            if (!SQL_SUCCEEDED(ret)) {
-                throw std::runtime_error("Failed to bind parameter for entity insertion");
+    template<typename T>
+    static std::string buildSelectSqlImpl(
+        const std::string& column)
+    {
+        using Traits =
+            infrastructure::persistence::SqlTraits<T>;
+
+        std::ostringstream sql;
+
+        sql << "SELECT ";
+
+        for (std::size_t i = 0;
+             i < Traits::columns.size();
+             ++i)
+        {
+            if (i > 0)
+            {
+                sql << ", ";
             }
 
-            // SQLSMALLINT sqlType;
-            // SQLULEN colSize;
-            // SQLSMALLINT decDigits;
-            // SQLSMALLINT nullable;
+            sql << quoteIdentifier(
+                Traits::columns[i]);
+        }
 
-            // SQLDescribeParam(stmt, i+1, &sqlType, &colSize, &decDigits, &nullable);
+        sql << " FROM "
+            << quoteIdentifier(
+                Traits::table);
 
-            // std::cout << "Param " << i+1
-            //         << " expects SQL type " << sqlType
-            //         << " size " << colSize << "\n";
+        sql << " WHERE "
+            << quoteIdentifier(column)
+            << " = ?";
+
+        return sql.str();
+    }
+
+    // ========================================================
+    // INSERT
+    // ========================================================
+
+    template<typename T>
+    static std::string buildInsertSqlImpl(
+        const T& /*entity*/)
+    {
+        using Traits =
+            infrastructure::persistence::SqlTraits<T>;
+
+        std::ostringstream sql;
+
+        sql << "INSERT INTO "
+            << quoteIdentifier(Traits::table)
+            << " (";
+
+        for (std::size_t i = 0;
+             i < Traits::columns.size();
+             ++i)
+        {
+            if (i > 0)
+            {
+                sql << ", ";
+            }
+
+            sql << quoteIdentifier(
+                Traits::columns[i]);
+        }
+
+        sql << ") VALUES (";
+
+        for (std::size_t i = 0;
+             i < Traits::columns.size();
+             ++i)
+        {
+            if (i > 0)
+            {
+                sql << ", ";
+            }
+
+            sql << "?";
+        }
+
+        sql << ")";
+
+        return sql.str();
+    }
+
+    // ========================================================
+    // Bind input parameters
+    // ========================================================
+
+    template<typename T>
+    static void bindParametersImpl(
+        SQLHSTMT stmt,
+        const T& entity,
+        std::vector<std::string>& buffers,
+        std::vector<SQLLEN>& lengths)
+    {
+        using Traits =
+            infrastructure::persistence::SqlTraits<T>;
+
+        const std::size_t count =
+            Traits::columnCount();
+
+        buffers.resize(count);
+        lengths.resize(count);
+
+        for (std::size_t i = 0;
+             i < count;
+             ++i)
+        {
+            buffers[i] =
+                Traits::getField(entity, i);
+
+            lengths[i] =
+                static_cast<SQLLEN>(
+                    buffers[i].size());
+
+            SQLRETURN ret =
+                SQLBindParameter(
+                    stmt,
+                    static_cast<SQLUSMALLINT>(i + 1),
+                    SQL_PARAM_INPUT,
+                    SQL_C_CHAR,
+                    SQL_VARCHAR,
+                    Traits::columnSizes[i],
+                    0,
+                    buffers[i].data(),
+                    buffers[i].size(),
+                    &lengths[i]);
+
+            if (!SQL_SUCCEEDED(ret))
+            {
+                throw std::runtime_error(
+                    "SQLBindParameter failed");
+            }
         }
     }
 
-    template <typename T> static std::string buildSelectByColumnSql(const std::string& column) {
-        const auto& cols = SqlTraits<T>::columns;
+    // ========================================================
+    // Bind output columns
+    // ========================================================
 
-        std::string sql = "SELECT ";
+    template<typename T>
+    static void bindOutputColumnsImpl(
+        SQLHSTMT stmt,
+        std::vector<std::vector<char>>& buffers)
+    {
+        using Traits =
+            infrastructure::persistence::SqlTraits<T>;
 
-        for (size_t i = 0; i < cols.size(); ++i) {
-            sql += cols[i];
-            if (i + 1 < cols.size()) sql += ", ";
+        const std::size_t count =
+            Traits::columnCount();
+
+        buffers.resize(count);
+
+        for (std::size_t i = 0;
+             i < count;
+             ++i)
+        {
+            // +1 for '\0'
+            buffers[i].resize(
+                Traits::columnSizes[i] + 1);
+
+            SQLRETURN ret =
+                SQLBindCol(
+                    stmt,
+                    static_cast<SQLUSMALLINT>(i + 1),
+                    SQL_C_CHAR,
+                    buffers[i].data(),
+                    buffers[i].size(),
+                    nullptr);
+
+            if (!SQL_SUCCEEDED(ret))
+            {
+                throw std::runtime_error(
+                    "SQLBindCol failed");
+            }
+        }
+    }
+
+    // ========================================================
+    // Registry column count
+    // ========================================================
+
+    std::size_t columnCountFromRegistry(
+        const std::type_info& type) const
+    {
+        const auto it =
+            registry_.find(type.hash_code());
+
+        if (it == registry_.end())
+        {
+            throw std::runtime_error(
+                "Type is not registered");
         }
 
-        sql += " FROM ";
-        sql += SqlTraits<T>::table;
-        sql += " WHERE ";
-        sql += column;
-        sql += " = ?";
-
-        return sql;
+        return it->second.columnCountFn();
     }
 
-    template <typename T> static void bindOutputColumns(SQLHSTMT stmt, std::vector<std::vector<char>>& buffers) {
-    const auto& sizes = SqlTraits<T>::columnSizes;
+    // ========================================================
+    // SQL Server identifier quoting
+    // ========================================================
 
-    for (size_t i = 0; i < sizes.size(); ++i) {
-        buffers[i].resize(sizes[i] + 1);
-
-        SQLBindCol(
-            stmt,
-            static_cast<SQLUSMALLINT>(i + 1),
-            SQL_C_CHAR,
-            buffers[i].data(),
-            sizes[i] + 1,
-            nullptr
-        );
+    static std::string quoteIdentifier(
+        std::string_view identifier)
+    {
+        return "[" +
+               std::string(identifier) +
+               "]";
     }
-}
-
 };
-
-}

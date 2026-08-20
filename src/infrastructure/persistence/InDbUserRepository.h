@@ -11,7 +11,8 @@ namespace infrastructure::persistence {
 
 class InDbUserRepository : public domain::repositories::IUserRepository {
 public:
-    InDbUserRepository(IDatabaseConnection& db, const std::string& connectionString);
+    InDbUserRepository(const std::string& connectionString, 
+        IDatabaseConnection& db, IServerHelper& serverHelper, DbAdapter<domain::entities::User>& dbRepo);
     ~InDbUserRepository();
 
     void add(const domain::entities::User& user) override;
@@ -21,7 +22,8 @@ public:
 private:
     const std::string& connectionString_;
     IDatabaseConnection& db_;
-    DbAdapter<domain::entities::User> dbRepo_;   // REFERENCE inside DbAdapter
+    IServerHelper& serverHelper_;
+    DbAdapter<domain::entities::User>& dbAdapter_;   // REFERENCE inside DbAdapter
 
 };
 

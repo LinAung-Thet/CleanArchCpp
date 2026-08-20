@@ -1,153 +1,304 @@
 #pragma once
 
-#include <Windows.h>
-#include <string>
-#include <stdexcept>
-#include <sql.h>
-#include <sqlext.h>
-
+#include "IServerHelper.h"
+#include "SqlTraits.h"
 #include "IDatabaseConnection.h"
-#include "sqlserver/SqlServerHelper.h"
-#include "sqlserver/SqlServerAdapter.h"
 
-namespace infrastructure::persistence {
+#include <optional>
+#include <string>
+#include <vector>
 
-template <typename T>
-class DbAdapter {
+namespace infrastructure::persistence
+{
+template<typename T>
+class DbAdapter
+{
 public:
-    explicit DbAdapter(std::string connectionString, IDatabaseConnection& db)
-        : connectionString_(std::move(connectionString)), db_(db) {}
 
-    void add(const T& entity) {
-        // SQLHDBC hDbc = sqlServerRepo_.connect(connectionString_);
-        SQLHDBC hDbc = db_.connect(connectionString_);
+    explicit DbAdapter(
+        std::string connectionString,
+        IDatabaseConnection& db,
+        IServerHelper& helper)
+        : connectionString_(
+              std::move(connectionString)),
+          db_(db),
+          serverHelper_(helper)
+    {
+    }
 
-        SQLHSTMT stmt = nullptr;
+    // ========================================================
+    // Find by column
+    // ========================================================
 
-        SQLRETURN ret = SQLAllocHandle(
-            SQL_HANDLE_STMT,
-            hDbc,
-            &stmt
-        );
+    std::optional<T> findByColumn(
+        const std::string& column,
+        const std::string& value) const
+    {
+        SQLHDBC hDbc =
+            db_.connect(connectionString_);
 
-        if (!SQL_SUCCEEDED(ret)) {
-            throw std::runtime_error("Failed to allocate statement");
+        SQLHSTMT stmt = SQL_NULL_HSTMT;
+
+        SQLRETURN ret =
+            SQLAllocHandle(
+                SQL_HANDLE_STMT,
+                hDbc,
+                &stmt);
+
+        if (!SQL_SUCCEEDED(ret))
+        {
+            db_.disconnect();
+            return std::nullopt;
         }
 
-        auto adapter = infrastructure::persistence::sqlserver::SqlServerAdapter<T>{};
-        std::string sql = adapter.buildInsert(entity);
+        // ----------------------------------------------------
+        // Generate SQL
+        // ----------------------------------------------------
 
-        ret = SQLPrepare(
-            stmt,
-            reinterpret_cast<SQLCHAR*>(sql.data()),
-            SQL_NTS
-        );
+        const std::string sql =
+            serverHelper_.buildSelectByColumnSql<T>(
+                column);
 
-        if (!SQL_SUCCEEDED(ret)) {
-            SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-            throw std::runtime_error("Failed to prepare SQL");
+        ret =
+            SQLPrepare(
+                stmt,
+                reinterpret_cast<SQLCHAR*>(
+                    const_cast<char*>(
+                        sql.c_str())),
+                SQL_NTS);
+
+        if (!SQL_SUCCEEDED(ret))
+        {
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
+
+            db_.disconnect();
+
+            return std::nullopt;
         }
 
-        // These MUST remain alive until SQLExecute() finishes.
-        std::vector<std::string> buffers;
-        std::vector<SQLLEN> lengths;
+        // ----------------------------------------------------
+        // Bind WHERE parameter
+        // ----------------------------------------------------
 
-        sqlserver::SqlServerHelper::bindParameters(
-            stmt,
-            entity,
-            buffers,
-            lengths
-        );
+        SQLLEN valueLength =
+            static_cast<SQLLEN>(
+                value.size());
+
+        ret =
+            SQLBindParameter(
+                stmt,
+                1,
+                SQL_PARAM_INPUT,
+                SQL_C_CHAR,
+                SQL_VARCHAR,
+                value.size(),
+                0,
+                const_cast<char*>(
+                    value.c_str()),
+                value.size(),
+                &valueLength);
+
+        if (!SQL_SUCCEEDED(ret))
+        {
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
+
+            db_.disconnect();
+
+            return std::nullopt;
+        }
+
+        // ----------------------------------------------------
+        // Execute
+        // ----------------------------------------------------
 
         ret = SQLExecute(stmt);
 
-        std::cout << "SQLExecute returned: " << ret << '\n';
-
-        if (ret == SQL_ERROR) {
-            SQLCHAR sqlState[6] = {};
-            SQLCHAR message[SQL_MAX_MESSAGE_LENGTH] = {};
-            SQLINTEGER nativeError = 0;
-            SQLSMALLINT messageLength = 0;
-
-            SQLRETURN diagRet = SQLGetDiagRec(
+        if (!SQL_SUCCEEDED(ret))
+        {
+            SQLFreeHandle(
                 SQL_HANDLE_STMT,
-                stmt,
-                1,
-                sqlState,
-                &nativeError,
-                message,
-                sizeof(message),
-                &messageLength
-            );
+                stmt);
 
-            std::cout << "SQLGetDiagRec returned: " << diagRet << '\n';
-            std::cout << "SQL State: " << sqlState << '\n';
-            std::cout << "Native error: " << nativeError << '\n';
-            std::cout << "Message: " << message << '\n';
-        }
-        if (!SQL_SUCCEEDED(ret)) {
             db_.disconnect();
-            throw std::runtime_error("Failed to insert entity");
+
+            return std::nullopt;
         }
 
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
-        db_.disconnect();
-    }
+        // ----------------------------------------------------
+        // Allocate output buffers
+        // ----------------------------------------------------
 
-    template <typename T> std::optional<T> findByColumn( const std::string& column, const std::string& value ) const {
-        SQLHDBC hDbc = db_.connect(connectionString_);
+        std::vector<std::vector<char>> buffers(
+            serverHelper_.columnCount<T>());
 
-        SQLHSTMT stmt;
-        SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &stmt);
+        // ----------------------------------------------------
+        // Bind output columns
+        // ----------------------------------------------------
 
-        std::string sql = infrastructure::persistence::sqlserver::SqlServerHelper::buildSelectByColumnSql<T>(column);
-        SQLPrepare(stmt, (SQLCHAR*)sql.c_str(), SQL_NTS);
-
-        SQLLEN len = (SQLLEN)value.size();
-
-        SQLBindParameter(
+        serverHelper_.bindOutputColumns<T>(
             stmt,
-            1,
-            SQL_PARAM_INPUT,
-            SQL_C_CHAR,
-            SQL_VARCHAR,
-            value.size(),
-            0,
-            (SQLPOINTER)value.c_str(),
-            value.size(),   // buffer length
-            &len
-        );
+            buffers);
 
-        auto ret = SQLExecute(stmt);
-        if (!SQL_SUCCEEDED(ret)) {
-            SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        // ----------------------------------------------------
+        // Fetch
+        // ----------------------------------------------------
+
+        ret = SQLFetch(stmt);
+
+        if (ret == SQL_NO_DATA)
+        {
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
+
+            db_.disconnect();
+
             return std::nullopt;
         }
 
-        // Allocate buffers for each column
-        std::vector<std::vector<char>> buffers(infrastructure::persistence::sqlserver::SqlTraits<T>::columns.size());
-        infrastructure::persistence::sqlserver::SqlServerHelper::bindOutputColumns<T>(stmt, buffers);
+        if (!SQL_SUCCEEDED(ret))
+        {
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
 
-        if (SQLFetch(stmt) == SQL_NO_DATA) {
-            SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+            db_.disconnect();
+
             return std::nullopt;
         }
 
-        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        // ----------------------------------------------------
+        // Cleanup
+        // ----------------------------------------------------
+
+        SQLFreeHandle(
+            SQL_HANDLE_STMT,
+            stmt);
 
         db_.disconnect();
 
-        // Construct entity using SqlTraits<T>
-        return infrastructure::persistence::sqlserver::SqlTraits<T>::fromRow(
-            buffers[0].data(),
-            buffers[1].data(),
-            buffers[2].data()
-        );
+        // ----------------------------------------------------
+        // Convert row -> entity
+        // ----------------------------------------------------
+
+        return infrastructure::persistence::
+            SqlTraits<T>::fromRow(buffers);
     }
 
-private:
-    std::string connectionString_;
-    IDatabaseConnection& db_;
-};
+    bool add(const T& entity) const
+    {
+        SQLHDBC hDbc =
+            db_.connect(connectionString_);
 
-} // namespace infrastructure::persistence
+        if (hDbc == SQL_NULL_HDBC)
+        {
+            return false;
+        }
+
+        SQLHSTMT stmt = SQL_NULL_HSTMT;
+
+        SQLRETURN ret =
+            SQLAllocHandle(
+                SQL_HANDLE_STMT,
+                hDbc,
+                &stmt);
+
+        if (!SQL_SUCCEEDED(ret))
+        {
+            db_.disconnect();
+            return false;
+        }
+
+        try
+        {
+            // ----------------------------------------------------
+            // Generate INSERT SQL
+            // ----------------------------------------------------
+
+            const std::string sql =
+                serverHelper_.buildInsertSql<T>(
+                    entity);
+
+            ret =
+                SQLPrepare(
+                    stmt,
+                    reinterpret_cast<SQLCHAR*>(
+                        const_cast<char*>(
+                            sql.c_str())),
+                    SQL_NTS);
+
+            if (!SQL_SUCCEEDED(ret))
+            {
+                SQLFreeHandle(
+                    SQL_HANDLE_STMT,
+                    stmt);
+
+                db_.disconnect();
+                return false;
+            }
+
+            // ----------------------------------------------------
+            // Bind parameters
+            // ----------------------------------------------------
+
+            std::vector<std::string> buffers;
+            std::vector<SQLLEN> lengths;
+
+            serverHelper_.bindParameters<T>(
+                stmt,
+                entity,
+                buffers,
+                lengths);
+
+            // ----------------------------------------------------
+            // Execute
+            // ----------------------------------------------------
+
+            ret = SQLExecute(stmt);
+
+            if (!SQL_SUCCEEDED(ret))
+            {
+                SQLFreeHandle(
+                    SQL_HANDLE_STMT,
+                    stmt);
+
+                db_.disconnect();
+                return false;
+            }
+
+            // ----------------------------------------------------
+            // Cleanup
+            // ----------------------------------------------------
+
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
+
+            db_.disconnect();
+
+            return true;
+        }
+        catch (...)
+        {
+            SQLFreeHandle(
+                SQL_HANDLE_STMT,
+                stmt);
+
+            db_.disconnect();
+
+            return false;
+        }
+    }
+private:
+
+    std::string connectionString_;
+
+    IDatabaseConnection& db_;
+
+    IServerHelper& serverHelper_;
+};
+}

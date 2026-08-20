@@ -1,3 +1,4 @@
+#pragma once
 #include "../IDatabaseConnection.h"
 
 namespace infrastructure::persistence::sqlserver {

@@ -1,6 +1,3 @@
-#include <windows.h>
-#include <sql.h>
-#include <sqlext.h>
 #include <iostream>
 #include <string>
 #include <stdexcept>
@@ -9,21 +6,20 @@
 
 namespace infrastructure::persistence {
 
-InDbUserRepository::InDbUserRepository(IDatabaseConnection& db, const std::string& connectionString)
-    : connectionString_(connectionString),
-      db_(db),
-    //   sqlServerRepo_(connectionString_),            // construct the real object
-      dbRepo_(connectionString_, db_)    // pass it BY REFERENCE
-{}
+InDbUserRepository::InDbUserRepository(const std::string& connectionString, 
+                                       IDatabaseConnection& db,
+                                       IServerHelper& serverHelper,
+                                       DbAdapter<domain::entities::User>& dbAdapter)
+    : connectionString_(connectionString), db_(db), serverHelper_(serverHelper), dbAdapter_(dbAdapter) {}
 
 InDbUserRepository::~InDbUserRepository() {}
 
 void InDbUserRepository::add(const domain::entities::User& user) {
-    dbRepo_.add(user);
+    dbAdapter_.add(user);
 }
 
 std::optional<domain::entities::User> InDbUserRepository::findByEmail(const std::string& email) {
-    return dbRepo_.findByColumn<domain::entities::User>("Email", email);
+    return dbAdapter_.findByColumn("Email", email);
 }
 
 } // namespace infrastructure::persistence::sqlserver
