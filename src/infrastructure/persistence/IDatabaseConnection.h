@@ -1,24 +1,56 @@
 #pragma once
+
 #include <Windows.h>
 #include <sql.h>
 #include <sqlext.h>
+
 #include <string>
 
-namespace infrastructure::persistence {
-class IDatabaseConnection {
+namespace infrastructure::persistence
+{
+    
+class IDatabaseConnection
+{
 public:
+
     virtual ~IDatabaseConnection() = default;
 
-    virtual SQLHDBC connect(const std::string& connectionString) = 0;
+    // ========================================================
+    // Connection
+    // ========================================================
+
+    virtual SQLHDBC connect(
+        const std::string& connectionString) = 0;
+
     virtual void disconnect() = 0;
 
-    virtual void* allocateStatement() = 0;
-    virtual void prepareStatement(void* stmt, const std::string& sql) = 0;
-    virtual void executeStatement(void* stmt) = 0;
+    // ========================================================
+    // Statement lifecycle
+    // ========================================================
 
-    // Optional: diagnostics, error handling, etc.
-protected:
-        SQLHENV hEnv_;
-        SQLHDBC hDbc_;
+    virtual SQLHSTMT allocateStatement(
+        SQLHDBC hDbc) = 0;
+
+    virtual void freeStatement(
+        SQLHSTMT stmt) = 0;
+
+    // ========================================================
+    // Statement execution
+    // ========================================================
+
+    virtual void prepareStatement(
+        SQLHSTMT stmt,
+        const std::string& sql) = 0;
+
+    virtual void executeStatement(
+        SQLHSTMT stmt) = 0;
+
+    // ========================================================
+    // Fetch
+    // ========================================================
+
+    virtual SQLRETURN fetch(
+        SQLHSTMT stmt) = 0;
 };
+
 }
