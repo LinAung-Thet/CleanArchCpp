@@ -1,3 +1,4 @@
+
 #include "../infrastructure/persistence/InMemoryUserRepository.h"   
 #include "../infrastructure/logging/ConsoleLogger.h"
 #include "../application/use_cases/RegisterUser.h"
@@ -19,10 +20,11 @@ int main() {
         // "Encrypt=yes;TrustServerCertificate=yes;";
 
     using User = domain::entities::User;
-    infrastructure::persistence::sqlserver::SqlServerConnection dbConnection(connStr);
-    SqlServerHelper sqlServerHelper;
+    infrastructure::persistence::sqlserver::SqlServer dbConnection;
+    infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper;
 
     sqlServerHelper.registerType<User>();
+
     infrastructure::persistence::DbAdapter<User> userAdapter(connStr, dbConnection, sqlServerHelper);
     infrastructure::persistence::InDbUserRepository userRepo(connStr, dbConnection, sqlServerHelper, userAdapter);
     infrastructure::logging::ConsoleLogger logger;
@@ -31,8 +33,8 @@ int main() {
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
-    controller.registerUser("Ling", "ling@example.com");
-    controller.registerUser("Ling", "ling@example.com"); // duplicate to show behavior
+    controller.registerUser("Lini", "lini@example.com");
+    controller.registerUser("Lini", "lini@example.com"); // duplicate to show behavior
 
     return 0;
 }
