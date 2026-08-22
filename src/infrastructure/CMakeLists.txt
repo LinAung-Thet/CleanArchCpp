@@ -6,7 +6,6 @@ add_library(infrastructure STATIC
     persistence/IServerHelper.h
     persistence/SqlTraits.h
     persistence/sqlserver/SqlServerHelper.h
-    # persistence/sqlserver/SqlServerAdapter.h
     persistence/sqlserver/SqlServerConnection.h
     logging/ConsoleLogger.cpp
 )
