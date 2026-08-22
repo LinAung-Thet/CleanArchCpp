@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────┐
+│                       Domain                         │
+│                                                      │
+│        User / Product / Order / Email / ...          │
+└──────────────────────────▲───────────────────────────┘
+                           │
+                           │ maps T ↔ SqlRow
+                           │
+                    ┌──────┴──────┐
+                    │ SqlTraits<T>│
+                    │             │
+                    │ metadata()  │
+                    │ toParameters│
+                    │ fromRow()   │
+                    └──────▲──────┘
+                           │
+                           │ T known at compile time
+                           │
+                    ┌──────┴──────┐
+                    │ DbAdapter<T>│
+                    └──────┬──────┘
+                           │
+                           │ database-independent
+                           │ operations
+                           ▼
+                    ┌─────────────┐
+                    │ ISqlHelper  │
+                    └──────┬──────┘
+                           │
+                 ┌─────────┴─────────┐
+                 │                   │
+                 ▼                   ▼
+       ┌─────────────────┐  ┌─────────────────┐
+       │SqlServerHelper  │  │ PostgreHelper   │
+       │                 │  │                 │
+       │ SQL Server      │  │ PostgreSQL      │
+       │ ODBC            │  │ libpq           │
+       │ SQLBindParameter│  │ PQexecParams    │
+       │ SQLBindCol      │  │ PQgetvalue      │
+       └─────────────────┘  └─────────────────┘
