@@ -21,11 +21,11 @@ int main() {
 
     using User = domain::entities::User;
     infrastructure::persistence::sqlserver::SqlServer dbConnection;
-    infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper;
+    dbConnection.connect(connStr);
 
-    sqlServerHelper.registerType<User>();
+    infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper(dbConnection.connection());
 
-    infrastructure::persistence::DbAdapter<User> userAdapter(connStr, dbConnection, sqlServerHelper);
+    infrastructure::persistence::DbAdapter<User> userAdapter(sqlServerHelper);
     infrastructure::persistence::InDbUserRepository userRepo(connStr, dbConnection, sqlServerHelper, userAdapter);
     infrastructure::logging::ConsoleLogger logger;
 
@@ -33,8 +33,8 @@ int main() {
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
-    controller.registerUser("Lini", "lini@example.com");
-    controller.registerUser("Lini", "lini@example.com"); // duplicate to show behavior
+    controller.registerUser("Linj", "linj@example.com");
+    controller.registerUser("Linj", "linj@example.com"); // duplicate to show behavior
 
     return 0;
 }
