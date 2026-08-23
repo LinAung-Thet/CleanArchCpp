@@ -1,95 +1,69 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
-#include <stdexcept>
 #include <string>
-#include <string_view>
+#include <utility>
 #include <vector>
-
-#include <Windows.h>
-#include <sql.h>
-#include <sqlext.h>
 
 namespace infrastructure::persistence
 {
+    // ------------------------------------------------------------
+    // Database-neutral SQL value
+    // ------------------------------------------------------------
 
-template<typename T>
-struct SqlTraits;
-
-// ============================================================
-// User
-// ============================================================
-
-template<>
-struct SqlTraits<domain::entities::User>
-{
-    using Entity = domain::entities::User;
-
-    static constexpr std::string_view table = "Users";
-
-    static constexpr std::array<std::string_view, 3> columns = {
-        "Id",
-        "Name",
-        "Email"
-    };
-
-    static constexpr std::array<SQLULEN, 3> columnSizes = {
-        50,
-        100,
-        200
-    };
-
-    static constexpr std::size_t columnCount()
+    struct SqlValue
     {
-        return columns.size();
-    }
+        std::string value;
+        bool isNull{false};
 
-    // --------------------------------------------------------
-    // Convert entity field -> string
-    // --------------------------------------------------------
-
-    static std::string getField(
-        const Entity& entity,
-        std::size_t index)
-    {
-        switch (index)
+        static SqlValue null()
         {
-        case 0:
-            return entity.id();
-
-        case 1:
-            return entity.name();
-
-        case 2:
-            return entity.email().value();
-
-        default:
-            throw std::out_of_range(
-                "Invalid User field index");
-        }
-    }
-
-    // --------------------------------------------------------
-    // Construct entity from database row
-    // --------------------------------------------------------
-
-    static Entity fromRow(
-        const std::vector<std::vector<char>>& buffers)
-    {
-        if (buffers.size() < columnCount())
-        {
-            throw std::runtime_error(
-                "Insufficient database columns");
+            return SqlValue{
+                {},
+                true
+            };
         }
 
-        return Entity{
-            buffers[0].data(),
-            buffers[1].data(),
-            domain::value_objects::Email(
-                buffers[2].data())
-        };
-    }
-};
+        static SqlValue fromString(
+            std::string value)
+        {
+            return SqlValue{
+                std::move(value),
+                false
+            };
+        }
+    };
 
-} // namespace infrastructure::persistence
+    using SqlParameters =
+        std::vector<SqlValue>;
+
+    // ------------------------------------------------------------
+    // Database-neutral row
+    // ------------------------------------------------------------
+
+    using SqlRow =
+        std::vector<std::string>;
+
+    using SqlRows =
+        std::vector<SqlRow>;
+
+    // ------------------------------------------------------------
+    // Entity SQL metadata
+    // ------------------------------------------------------------
+
+    struct SqlMetadata
+    {
+        std::string tableName;
+        std::vector<std::string> columns;
+    };
+
+    // ------------------------------------------------------------
+    // Generic SqlTraits
+    //
+    // There is intentionally no implementation here.
+    // Each persistent entity provides a specialization.
+    // ------------------------------------------------------------
+
+    template<typename T>
+    struct SqlTraits;
+}

@@ -6,13 +6,14 @@
 #include "../../domain/repositories/IUserRepository.h"
 #include "DbAdapter.h"
 #include "IDatabaseConnection.h"
+#include "IServerHelper.h"
 
 namespace infrastructure::persistence {
 
 class InDbUserRepository : public domain::repositories::IUserRepository {
 public:
     InDbUserRepository(const std::string& connectionString, 
-        IDatabaseConnection& db, IServerHelper& serverHelper, DbAdapter<domain::entities::User>& dbRepo);
+        IDatabaseConnection& db, ISqlHelper& serverHelper, DbAdapter<domain::entities::User>& dbRepo);
     ~InDbUserRepository();
 
     void add(const domain::entities::User& user) override;
@@ -22,7 +23,7 @@ public:
 private:
     const std::string& connectionString_;
     IDatabaseConnection& db_;
-    IServerHelper& serverHelper_;
+    ISqlHelper& serverHelper_;
     DbAdapter<domain::entities::User>& dbAdapter_;   // REFERENCE inside DbAdapter
 
 };

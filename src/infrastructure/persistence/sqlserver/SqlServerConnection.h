@@ -34,6 +34,11 @@ public:
     SqlServer& operator=(
         const SqlServer&) = delete;
 
+    SQLHDBC connection() const
+    {
+        return hDbc_;
+    }
+
     // ========================================================
     // Connection
     // ========================================================
