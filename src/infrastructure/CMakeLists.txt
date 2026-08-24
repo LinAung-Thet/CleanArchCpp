@@ -3,7 +3,7 @@ add_library(infrastructure STATIC
     persistence/InDbUserRepository.cpp
     persistence/DbAdapter.h
     persistence/IDatabaseConnection.h
-    persistence/IServerHelper.h
+    persistence/ISqlHelper.h
     persistence/SqlTraits.h
     persistence/sqlserver/SqlServerHelper.h
     persistence/sqlserver/SqlServerConnection.h

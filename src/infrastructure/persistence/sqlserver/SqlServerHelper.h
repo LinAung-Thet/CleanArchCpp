@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <sqlext.h>
 
-#include "../IServerHelper.h"
+#include "../ISqlHelper.h"
 
 namespace infrastructure::persistence::sqlserver
 {

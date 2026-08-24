@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "IServerHelper.h"
+#include "ISqlHelper.h"
 #include "SqlTraits.h"
 #include "UserSqlTraits.h"
 

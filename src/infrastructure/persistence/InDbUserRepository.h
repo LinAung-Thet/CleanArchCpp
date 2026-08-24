@@ -6,7 +6,7 @@
 #include "../../domain/repositories/IUserRepository.h"
 #include "DbAdapter.h"
 #include "IDatabaseConnection.h"
-#include "IServerHelper.h"
+#include "ISqlHelper.h"
 
 namespace infrastructure::persistence {
 
