@@ -26,7 +26,7 @@ int main() {
     infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper(dbConnection.connection());
 
     infrastructure::persistence::DbAdapter<User> userAdapter(sqlServerHelper);
-    infrastructure::persistence::InDbUserRepository userRepo(connStr, dbConnection, sqlServerHelper, userAdapter);
+    infrastructure::persistence::InDbUserRepository userRepo(userAdapter);
     infrastructure::logging::ConsoleLogger logger;
 
     application::use_cases::RegisterUser registerUserUseCase(userRepo);

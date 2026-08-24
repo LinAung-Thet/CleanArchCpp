@@ -2,9 +2,6 @@
 
 #include "SqlTraits.h"
 
-#include "../../domain/entities/User.h"
-#include "../../domain/value_objects/Email.h"
-
 #include <stdexcept>
 #include <string>
 
@@ -19,6 +16,7 @@ namespace infrastructure::persistence
         // Database metadata
         // --------------------------------------------------------
 
+        // database mapping; How is User represented in the database?
         static SqlMetadata metadata()
         {
             return SqlMetadata{
@@ -54,6 +52,7 @@ namespace infrastructure::persistence
         // SQL row -> Entity
         // --------------------------------------------------------
 
+        // object construction; how to construct a User from retrieved data?
         static Entity fromRow(
             const SqlRow& row)
         {

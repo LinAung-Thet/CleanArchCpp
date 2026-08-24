@@ -5,15 +5,12 @@
 #include <string>
 #include "../../domain/repositories/IUserRepository.h"
 #include "DbAdapter.h"
-#include "IDatabaseConnection.h"
-#include "ISqlHelper.h"
 
 namespace infrastructure::persistence {
 
 class InDbUserRepository : public domain::repositories::IUserRepository {
 public:
-    InDbUserRepository(const std::string& connectionString, 
-        IDatabaseConnection& db, ISqlHelper& serverHelper, DbAdapter<domain::entities::User>& dbRepo);
+    InDbUserRepository(DbAdapter<domain::entities::User>& dbRepo);
     ~InDbUserRepository();
 
     void add(const domain::entities::User& user) override;
@@ -21,9 +18,6 @@ public:
     findByEmail(const std::string& email) override;
 
 private:
-    const std::string& connectionString_;
-    IDatabaseConnection& db_;
-    ISqlHelper& serverHelper_;
     DbAdapter<domain::entities::User>& dbAdapter_;   // REFERENCE inside DbAdapter
 
 };

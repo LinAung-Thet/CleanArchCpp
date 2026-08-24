@@ -6,11 +6,8 @@
 
 namespace infrastructure::persistence {
 
-InDbUserRepository::InDbUserRepository(const std::string& connectionString, 
-                                       IDatabaseConnection& db,
-                                       ISqlHelper& serverHelper,
-                                       DbAdapter<domain::entities::User>& dbAdapter)
-    : connectionString_(connectionString), db_(db), serverHelper_(serverHelper), dbAdapter_(dbAdapter) {}
+InDbUserRepository::InDbUserRepository(DbAdapter<domain::entities::User>& dbAdapter)
+    : dbAdapter_(dbAdapter) {}
 
 InDbUserRepository::~InDbUserRepository() {}
 
