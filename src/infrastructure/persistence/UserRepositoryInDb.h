@@ -8,10 +8,10 @@
 
 namespace infrastructure::persistence {
 
-class InDbUserRepository : public domain::repositories::IUserRepository {
+class UserRepositoryInDb : public domain::repositories::IUserRepository {
 public:
-    InDbUserRepository(DbAdapter<domain::entities::User>& dbRepo);
-    ~InDbUserRepository();
+    UserRepositoryInDb(DbAdapter<domain::entities::User>& dbRepo);
+    ~UserRepositoryInDb();
 
     void add(const domain::entities::User& user) override;
     std::optional<domain::entities::User> 

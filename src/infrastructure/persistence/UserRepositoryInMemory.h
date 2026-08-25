@@ -7,7 +7,7 @@
 
 namespace infrastructure::persistence {
 
-class InMemoryUserRepository : public domain::repositories::IUserRepository {
+class UserRepositoryInMemory : public domain::repositories::IUserRepository {
 public:
     void add(const domain::entities::User& user) override;
 

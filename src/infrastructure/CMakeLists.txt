@@ -1,6 +1,6 @@
 add_library(infrastructure STATIC
-    persistence/InMemoryUserRepository.cpp
-    persistence/InDbUserRepository.cpp
+    persistence/UserRepositoryInMemory.cpp
+    persistence/UserRepositoryInDb.cpp
     persistence/DbAdapter.h
     persistence/IDatabaseConnection.h
     persistence/ISqlHelper.h

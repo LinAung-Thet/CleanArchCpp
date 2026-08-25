@@ -3,7 +3,7 @@
 
 #include "ISqlHelper.h"
 #include "SqlTraits.h"
-#include "UserSqlTraits.h"
+
 /* 
 How to organize the headers so that DbAdapter doesn't have to explicitly include every 
  UserSqlTraits.h, ProductSqlTraits.h, etc.

@@ -1,10 +1,10 @@
 
-#include "../infrastructure/persistence/InMemoryUserRepository.h"   
+#include "../infrastructure/persistence/UserRepositoryInMemory.h"   
 #include "../infrastructure/logging/ConsoleLogger.h"
 #include "../application/use_cases/RegisterUser.h"
 #include "../interface_adapters/presenters/ConsoleUserPresenter.h"
 #include "../interface_adapters/controllers/UserController.h"
-#include "../infrastructure/persistence/InDbUserRepository.h"
+#include "../infrastructure/persistence/UserRepositoryInDb.h"
 #include "../infrastructure/persistence/DbAdapter.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerConnection.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerHelper.h"
@@ -26,15 +26,15 @@ int main() {
     infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper(dbConnection.connection());
 
     infrastructure::persistence::DbAdapter<User> userAdapter(sqlServerHelper);
-    infrastructure::persistence::InDbUserRepository userRepo(userAdapter);
+    infrastructure::persistence::UserRepositoryInDb userRepo(userAdapter);
     infrastructure::logging::ConsoleLogger logger;
 
     application::use_cases::RegisterUser registerUserUseCase(userRepo);
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
-    controller.registerUser("Linj", "linj@example.com");
-    controller.registerUser("Linj", "linj@example.com"); // duplicate to show behavior
+    controller.registerUser("Linl", "linl@example.com");
+    controller.registerUser("Linl", "linl@example.com"); // duplicate to show behavior
 
     return 0;
 }
