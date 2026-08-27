@@ -69,7 +69,7 @@ public:
         for (const auto& row : rows)
         {
             result.push_back(
-                SqlTraits<T>::fromRow(row));
+                SqlTraits<T>::toEntity(row));
         }
 
         return result;
@@ -111,7 +111,7 @@ public:
         for (const auto& row : rows)
         {
             result.push_back(
-                SqlTraits<T>::fromRow(row));
+                SqlTraits<T>::toEntity(row));
         }
 
         return result;
@@ -141,7 +141,7 @@ public:
         for (const auto& row : rows)
         {
             result.push_back(
-                SqlTraits<T>::fromRow(row));
+                SqlTraits<T>::toEntity(row));
         }
 
         return result;

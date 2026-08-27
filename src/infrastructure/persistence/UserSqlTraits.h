@@ -53,7 +53,7 @@ namespace infrastructure::persistence
         // --------------------------------------------------------
 
         // object construction; how to construct a User from retrieved data?
-        static Entity fromRow(
+        static Entity toEntity(
             const SqlRow& row)
         {
             if (row.size() < columnCount())
