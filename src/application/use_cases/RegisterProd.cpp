@@ -17,4 +17,9 @@ namespace application::use_cases{
 
         return "Product registerred with the name: " + req.name_;
     }
+
+    int RegisterProd::generateProdId() {
+        static int id = 0;
+        return ++id;
+    }
 }

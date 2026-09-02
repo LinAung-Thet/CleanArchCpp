@@ -8,7 +8,7 @@ namespace application::use_cases{
         private:
             domain::repositories::IProdRepository& dbRepo_;
 
-            int generateProdId();
+            static int generateProdId();
 
         public:
         explicit RegisterProd(domain::repositories::IProdRepository&);
