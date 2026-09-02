@@ -1,6 +1,8 @@
 add_library(application STATIC
     use_cases/RegisterUser.cpp
+    use_cases/RegisterProd.cpp
     dto/RegisterUserRequest.h
+    dto/RegisterProdRequest.h
 )
 
 target_include_directories(application
