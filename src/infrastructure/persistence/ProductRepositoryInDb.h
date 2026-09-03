@@ -7,7 +7,7 @@
 #include "DbAdapter.h"
 
 namespace infrastructure::persistence{
-    class ProductRepositoryInDb : domain::repositories::IProdRepository{
+    class ProductRepositoryInDb : public domain::repositories::IProdRepository{
         private:
             DbAdapter<domain::entities::Product>& dbAdapter_;
         public:
