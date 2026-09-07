@@ -2,7 +2,9 @@ message(STATUS "Configuring interface_adapters layer")
 
 add_library(interface_adapters STATIC
     controllers/UserController.cpp
+    controllers/ProductController.cpp
     presenters/ConsoleUserPresenter.cpp
+    presenters/ConsoleProductPresenter.cpp
 )
 
 target_include_directories(interface_adapters
