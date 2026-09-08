@@ -2,9 +2,13 @@
 #include "../infrastructure/persistence/UserRepositoryInMemory.h"   
 #include "../infrastructure/logging/ConsoleLogger.h"
 #include "../application/use_cases/RegisterUser.h"
+#include "../application/use_cases/RegisterProd.h"
 #include "../interface_adapters/presenters/ConsoleUserPresenter.h"
+#include "../interface_adapters/presenters/ConsoleProductPresenter.h"
 #include "../interface_adapters/controllers/UserController.h"
+#include "../interface_adapters/controllers/ProductController.h"
 #include "../infrastructure/persistence/UserRepositoryInDb.h"
+#include "../infrastructure/persistence/ProductRepositoryInDb.h"
 #include "../infrastructure/persistence/DbAdapter.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerConnection.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerHelper.h"
@@ -20,6 +24,8 @@ int main() {
         // "Encrypt=yes;TrustServerCertificate=yes;";
 
     using User = domain::entities::User;
+    using Product = domain::entities::Product;
+
     infrastructure::persistence::sqlserver::SqlServer dbConnection;
     dbConnection.connect(connStr);
 
@@ -27,14 +33,27 @@ int main() {
 
     infrastructure::persistence::DbAdapter<User> userAdapter(sqlServerHelper);
     infrastructure::persistence::UserRepositoryInDb userRepo(userAdapter);
-    infrastructure::logging::ConsoleLogger logger;
 
+    infrastructure::persistence::DbAdapter<Product> productAdapter(sqlServerHelper);
+    infrastructure::persistence::ProductRepositoryInDb productRepo(productAdapter);
+
+    infrastructure::logging::ConsoleLogger logger;
+    
     application::use_cases::RegisterUser registerUserUseCase(userRepo);
     interface_adapters::presenters::ConsoleUserPresenter presenter(logger);
     interface_adapters::controllers::UserController controller(registerUserUseCase, presenter);
 
+    application::use_cases::RegisterProd registerProductUseCase(productRepo);
+    interface_adapters::presenters::ConsoleProductPresenter prodPresenter(logger);
+    interface_adapters::controllers::ProductController prodController(registerProductUseCase, prodPresenter);
+
+
     controller.registerUser("Linl", "linl@example.com");
     controller.registerUser("Linl", "linl@example.com"); // duplicate to show behavior
+
+    double price = 19.99;
+    prodController.registerProd("Widget", price);
+    prodController.registerProd("Widget", price); // duplicate to show behavior
 
     return 0;
 }
