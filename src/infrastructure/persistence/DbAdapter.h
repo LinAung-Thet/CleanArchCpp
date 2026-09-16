@@ -31,7 +31,7 @@ public:
     void DbAdapter<T>::add(const T& entity)
     {
         const auto metadata =
-            SqlTraits<T>::metadata();
+            SqlTraits<T>::metadata();   // The compiler will find the specialization of SqlTraits for T (e.g., UserSqlTraits, ProductSqlTraits, etc.)
 
         const auto sql =
             sqlHelper_.buildInsertSql(metadata);
