@@ -12,29 +12,47 @@
 #include "../infrastructure/persistence/DbAdapter.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerConnection.h"
 #include "../infrastructure/persistence/sqlserver/SqlServerHelper.h"
+#include "../infrastructure/persistence/PostgreDB/PostgresConnection.h"
+#include "../infrastructure/persistence/PostgreDB/PostgreSqlHelper.h"
 
 int main() {
+    // SQL Server connection string
+    // std::string connStr =
+    //     "DRIVER={ODBC Driver 17 for SQL Server};"
+    //     "SERVER=localhost,64420;"
+    //     "DATABASE=Conveyor;"
+    //     "UID=sa;"
+    //     "PWD=lat123456;"
+    //     "Encrypt=no;";
+
+    // PostgreSQL connection string
     std::string connStr =
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=localhost,64420;"
-        "DATABASE=Conveyor;"
-        "UID=sa;"
-        "PWD=lat123456;"
-        "Encrypt=no;";
-        // "Encrypt=yes;TrustServerCertificate=yes;";
+    "DRIVER={PostgreSQL Unicode};"
+    "SERVER=localhost;"
+    "PORT=3005;"
+    "DATABASE=Conveyor;"
+    "UID=postgres;"
+    "PWD=password;";
 
     using User = domain::entities::User;
     using Product = domain::entities::Product;
 
-    infrastructure::persistence::sqlserver::SqlServer dbConnection;
+    // infrastructure::persistence::sqlserver::SqlServer dbConnection;
+    // dbConnection.connect(connStr);
+
+    // infrastructure::persistence::sqlserver::SqlServerHelper sqlHelper(dbConnection.connection());
+
+    using infrastructure::persistence::postgresql::PostgresConnection;
+
+    PostgresConnection dbConnection;
     dbConnection.connect(connStr);
 
-    infrastructure::persistence::sqlserver::SqlServerHelper sqlServerHelper(dbConnection.connection());
+    infrastructure::persistence::PostgreSqlHelper sqlHelper(dbConnection.connection());
 
-    infrastructure::persistence::DbAdapter<User> userAdapter(sqlServerHelper);
+    infrastructure::persistence::DbAdapter<User> userAdapter(sqlHelper);
     infrastructure::persistence::UserRepositoryInDb userRepo(userAdapter);
 
-    infrastructure::persistence::DbAdapter<Product> productAdapter(sqlServerHelper);
+    infrastructure::persistence::DbAdapter<Product> productAdapter(sqlHelper);
     infrastructure::persistence::ProductRepositoryInDb productRepo(productAdapter);
 
     infrastructure::logging::ConsoleLogger logger;
